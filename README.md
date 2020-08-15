@@ -19,7 +19,7 @@ This allows your WSL to access all the identities loaded to pageant running on w
 By using e.g. KeePassXC as password manager, you can load your identities to pageant upon unlocking your database and your WSL agent will be able to access these identities, eliminating the need for redundant key storage. 
 
 ## Installation
-- First of all, check that you have python3 installed (`python --version` should give something around 3.8 or so). Then you can build an executable by using the `build.bat` script
+- First of all, check that you have python3 installed (`python --version` should give something around 3.8 or so). Then you can build an executable by using the `build.bat` script. Alternatively, you can download the latest pre-built binary [HERE](https://github.com/mxcd/PuttyAuthSock/releases/latest/download/PuttyAuthSock.exe)
 - Make sure that You have **installed** the [Putty](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html) and that plink is on your PATH (should be default when *installing* putty e.g. with the *.msi.  
   - For maximum comfort, **add pageant to your autostart**.
 - You will need to install and configure OpenSSH server in your WSL
