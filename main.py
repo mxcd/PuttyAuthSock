@@ -6,7 +6,9 @@ import subprocess
 import time
 import sys
 from pathlib import Path
-import shutil
+import winreg
+import kh2reg
+
 
 base_dir = "./"
 
@@ -139,14 +141,14 @@ def start_wsl_ssh():
 
 def register_known_host():
     known_host_entry = obtain_wsl_known_host_entry()
-    update_known_hosts(known_host_entry)
+    add_putty_reg_key(known_host_entry)
 
 
 def obtain_wsl_known_host_entry():
     fingerprints = subprocess.check_output(['ssh-keyscan', get_wsl_ip()], **subprocess_args(False)).decode()
     fingerprints = fingerprints.split("\n")
     for fingerprint in fingerprints:
-        if 'ssh-rsa' in fingerprint:
+        if 'ssh-ed25519' in fingerprint:
             return fingerprint
     print("Error: unable to obtain ssh-rsa fingerprint")
 
@@ -180,6 +182,17 @@ def remove_auth_sock():
 
 def kill_pid(pid):
     subprocess.check_output(['wsl', '--', 'kill',  '{}'.format(pid)], **subprocess_args(False))
+
+
+# Adds the known_host_entry to the registry
+# https://git.tartarus.org/?p=simon/putty.git;a=blob;f=contrib/kh2reg.py;hb=HEAD
+def add_putty_reg_key(known_host_entry):
+    regkey, regval = kh2reg.handle_line(known_host_entry)
+    print(regkey)
+    print(regval)
+    handle = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'SOFTWARE\SimonTatham\PuTTY\SshHostKeys', 0, winreg.KEY_ALL_ACCESS)
+    winreg.SetValueEx(handle, regkey, 0, winreg.REG_SZ, regval)
+    winreg.CloseKey(handle)
 
 
 if __name__ == '__main__':
