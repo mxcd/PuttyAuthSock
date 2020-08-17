@@ -6,6 +6,7 @@ import subprocess
 import time
 import sys
 from pathlib import Path
+import shutil
 
 base_dir = "./"
 
@@ -113,10 +114,14 @@ def main():
     app.MainLoop()
 
 
-def get_ppk_file():
+def get_ssh_dir():
     home = str(Path.home())
-    putty_auth_sock_dir = os.path.join(home, ".ssh")
-    ppk_file = os.path.join(putty_auth_sock_dir, "putty_auth_sock.ppk")
+    ssh_dir = os.path.join(home, ".ssh")
+    return ssh_dir
+
+
+def get_ppk_file():
+    ppk_file = os.path.join(get_ssh_dir(), "putty_auth_sock.ppk")
     return ppk_file
 
 
@@ -124,6 +129,7 @@ def get_wsl_ip():
     # we need to read WSL's IP address every time it has been started since it is not static
     ip_cmd = "ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'"
     ip = subprocess.check_output(['bash', '-c', '{}'.format(ip_cmd)], **subprocess_args(False)).decode('ascii')
+    print("Using IP address {}".format(ip))
     return ip.strip()
 
 
@@ -131,8 +137,40 @@ def start_wsl_ssh():
     subprocess.check_output(['wsl', '-u', 'root', '--', 'service', 'ssh', 'start'], **subprocess_args(False))
 
 
+def register_known_host():
+    known_host_entry = obtain_wsl_known_host_entry()
+    update_known_hosts(known_host_entry)
+
+
+def obtain_wsl_known_host_entry():
+    fingerprints = subprocess.check_output(['ssh-keyscan', get_wsl_ip()], **subprocess_args(False)).decode()
+    fingerprints = fingerprints.split("\n")
+    for fingerprint in fingerprints:
+        if 'ssh-rsa' in fingerprint:
+            return fingerprint
+    print("Error: unable to obtain ssh-rsa fingerprint")
+
+
+def update_known_hosts(known_host_entry):
+    known_hosts_file = os.path.join(get_ssh_dir(), "known_hosts")
+    with open(known_hosts_file, 'r') as f:
+        known_hosts = f.read().split("\n")
+
+    os.remove(known_hosts_file)
+
+    # Filter out eventually outdated known_host lines that match the fingerprint
+    # known_host_entry is of format "<IP> <format> <fingerprint>"
+    fingerprint = known_host_entry.split(" ")[2].strip()
+    known_hosts = [known_host for known_host in known_hosts if fingerprint not in known_host]
+    known_hosts.append(known_host_entry)
+
+    with open(known_hosts_file, 'w') as f:
+        f.write("\n".join([known_host.strip() for known_host in known_hosts]))
+
+
 def get_wsl_username():
     username = subprocess.check_output(['bash', '-c', '"whoami"'], **subprocess_args(False)).decode('ascii')
+    print("Using username {}".format(username))
     return username.strip()
 
 
@@ -146,4 +184,5 @@ def kill_pid(pid):
 
 if __name__ == '__main__':
     start_wsl_ssh()
+    register_known_host()
     main()
