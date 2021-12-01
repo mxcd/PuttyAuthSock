@@ -8,7 +8,9 @@ import sys
 from pathlib import Path
 import winreg
 import kh2reg
-
+import locale
+import datetime
+import locale
 
 base_dir = "./"
 
@@ -112,6 +114,8 @@ class TaskBarIcon(adv.TaskBarIcon):
 
 def main():
     app = wx.App()
+    locale.setlocale(locale.LC_ALL, 'en_GB')
+    print(datetime.datetime.strptime('2020', "%Y"))
     TaskBarIcon()
     app.MainLoop()
 
